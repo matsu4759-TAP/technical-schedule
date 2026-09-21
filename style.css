@@ -1,0 +1,177 @@
+:root {
+  color-scheme: light;
+  --bg: #F5F6F4;
+  --surface: #FFFFFF;
+  --surface-2: #EDEFEC;
+  --ink: #1B211D;
+  --ink-soft: #5B655D;
+  --ink-faint: #8C958E;
+  --border: #D9DED7;
+  --border-strong: #BFC7BC;
+  --tech: #33587D;
+  --tech-bg: #E4EBF2;
+  --tech-bg-strong: #C9D9E7;
+  --demo: #A5750E;
+  --demo-bg: #F5EBD4;
+  --demo-bg-strong: #EBD9AE;
+  --good: #3C7A52;
+  --good-bg: #E2EFE6;
+  --bad: #B3413A;
+  --bad-bg: #F5E2E0;
+  --radius: 10px;
+  --shadow: 0 10px 30px -12px rgb(27 33 29 / 0.25);
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #14181A;
+    --surface: #1C2124;
+    --surface-2: #252B2E;
+    --ink: #E7ECE8;
+    --ink-soft: #A6B0A9;
+    --ink-faint: #727C75;
+    --border: #333B3E;
+    --border-strong: #454F52;
+    --tech: #8FB4DA;
+    --tech-bg: #22364A;
+    --tech-bg-strong: #2C4763;
+    --demo: #E0B45C;
+    --demo-bg: #40340F;
+    --demo-bg-strong: #5A4A17;
+    --good: #7EC299;
+    --good-bg: #1E3527;
+    --bad: #E08C86;
+    --bad-bg: #402320;
+    --shadow: 0 10px 30px -12px rgb(0 0 0 / 0.6);
+  }
+}
+
+:root[data-theme="dark"] {
+  --bg: #14181A;
+  --surface: #1C2124;
+  --surface-2: #252B2E;
+  --ink: #E7ECE8;
+  --ink-soft: #A6B0A9;
+  --ink-faint: #727C75;
+  --border: #333B3E;
+  --border-strong: #454F52;
+  --tech: #8FB4DA;
+  --tech-bg: #22364A;
+  --tech-bg-strong: #2C4763;
+  --demo: #E0B45C;
+  --demo-bg: #40340F;
+  --demo-bg-strong: #5A4A17;
+  --good: #7EC299;
+  --good-bg: #1E3527;
+  --bad: #E08C86;
+  --bad-bg: #402320;
+  --shadow: 0 10px 30px -12px rgb(0 0 0 / 0.6);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Noto Sans JP", "Hiragino Kaku Gothic ProN", sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3 {
+  font-family: "Zen Kaku Gothic New", "Noto Sans JP", sans-serif;
+  font-weight: 700;
+  margin: 0;
+  text-wrap: balance;
+}
+
+button { font-family: inherit; cursor: pointer; }
+.tabular { font-variant-numeric: tabular-nums; }
+[hidden] { display: none !important; }
+
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 20px 16px calc(32px + env(safe-area-inset-bottom, 0px));
+}
+
+/* ---- Lock screen ---- */
+.lock-screen {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg);
+}
+.lock-card {
+  width: 100%;
+  max-width: 360px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px 24px;
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.lock-title { font-size: 1.2rem; }
+.lock-sub { margin: 0; color: var(--ink-soft); font-size: 0.85rem; }
+.lock-input {
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  color: var(--ink);
+  font-size: 1rem;
+  font-family: inherit;
+}
+.lock-input:focus {
+  outline: 2px solid var(--tech);
+  outline-offset: 1px;
+}
+.lock-error { color: var(--bad); font-size: 0.82rem; margin: 0; }
+.lock-submit { justify-content: center; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid transparent;
+  border-radius: 20px;
+  padding: 10px 16px;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+.btn-primary { background: var(--tech); color: #fff; }
+.btn-primary:hover { opacity: 0.92; }
+
+/* ---- Setup notice ---- */
+.setup-notice {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+}
+.setup-card {
+  max-width: 480px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 28px;
+  box-shadow: var(--shadow);
+}
+.setup-card code {
+  background: var(--surface-2);
+  padding: 2px 6px;
+  border-radius: 6px;
+}
+
+@media (max-width: 640px) {
+  .wrap { padding-left: 16px; padding-right: 16px; }
+}
