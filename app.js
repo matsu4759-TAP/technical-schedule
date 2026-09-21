@@ -146,6 +146,7 @@
     staff: [],
     equipment: [],
     categories: [],
+    salesStaff: [],
     mainView: safeStorage.get("psj_mainview") || "month",
     colorMode: safeStorage.get("psj_colormode") || "type",
     selectedDate: null,
@@ -169,10 +170,17 @@
     state.viewMonth = t.getMonth() + 1;
   })();
 
+  function eventOccursOn(e, dateStr) {
+    if (e.type === "request") {
+      return e.date === dateStr || e.desiredDate2 === dateStr || e.desiredDate3 === dateStr;
+    }
+    var end = e.endDate || e.date;
+    return e.date <= dateStr && dateStr <= end;
+  }
+
   function eventsOnDate(dateStr) {
     return state.events.filter(function (e) {
-      var end = e.endDate || e.date;
-      return e.date <= dateStr && dateStr <= end;
+      return eventOccursOn(e, dateStr);
     }).sort(function (a, b) { return (a.type === b.type) ? 0 : (a.type === "demo" ? -1 : 1); });
   }
 
@@ -548,8 +556,11 @@
       wrap.appendChild(el("div", { style: "background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;text-align:center;color:var(--ink-faint);font-size:13px;" }, ["デモリクエストはまだありません"]));
     } else {
       requests.forEach(function (ev) {
-        var p = parseYMD(ev.date);
-        var dateLabel = p.y + "年" + p.m + "月" + p.d + "日" + (ev.endDate && ev.endDate !== ev.date ? (" 〜 " + ev.endDate) : "");
+        var candidates = [ev.date, ev.desiredDate2, ev.desiredDate3].filter(Boolean);
+        var dateLabel = candidates.map(function (d) {
+          var p = parseYMD(d);
+          return p.y + "年" + p.m + "月" + p.d + "日";
+        }).join(" / ");
         var item = el("div", {});
         item.appendChild(el("div", { style: "font-size:11.5px;color:var(--ink-faint);margin-bottom:4px;font-weight:500;" }, [dateLabel]));
         item.appendChild(renderEventRow(ev));
@@ -637,7 +648,12 @@
     }
     if (ev.status) titleCol.appendChild(el("span", { style: "font-size:10.5px;padding:2px 7px;border-radius:10px;background:var(--surface-2);color:var(--ink-soft);display:inline-block;width:fit-content;margin-top:2px;" }, [ev.status]));
     if (isDemo && ev.result) titleCol.appendChild(el("div", { style: "font-size:12px;color:var(--good);margin-top:2px;" }, ["結果: " + ev.result]));
-    if (ev.endDate && ev.endDate !== ev.date) titleCol.appendChild(el("div", { style: "font-size:11px;color:var(--ink-faint);" }, [ev.date + " 〜 " + ev.endDate]));
+    if (isRequest) {
+      var candidates = [ev.date, ev.desiredDate2, ev.desiredDate3].filter(Boolean);
+      if (candidates.length > 1) titleCol.appendChild(el("div", { style: "font-size:11px;color:var(--ink-faint);" }, ["候補日: " + candidates.join(" / ")]));
+    } else if (ev.endDate && ev.endDate !== ev.date) {
+      titleCol.appendChild(el("div", { style: "font-size:11px;color:var(--ink-faint);" }, [ev.date + " 〜 " + ev.endDate]));
+    }
 
     var btns = el("div", { style: "display:flex;gap:4px;flex-shrink:0;" });
     if (isRequest) btns.appendChild(el("button", { style: pillBtnStyle(true) + "padding:6px 10px;font-size:11.5px;", onclick: function () { convertRequest(ev); } }, ["予定に変換"]));
@@ -658,6 +674,8 @@
       type: data.type,
       event_date: data.date,
       end_date: data.endDate || null,
+      desired_date_2: data.desiredDate2 || null,
+      desired_date_3: data.desiredDate3 || null,
       staff: data.staff || [],
       title: data.title,
       memo: data.memo,
@@ -677,6 +695,8 @@
       type: row.type,
       date: row.event_date,
       endDate: row.end_date,
+      desiredDate2: row.desired_date_2,
+      desiredDate3: row.desired_date_3,
       staff: row.staff || [],
       title: row.title,
       memo: row.memo,
@@ -727,6 +747,8 @@
       type: type,
       date: ev ? ev.date : (defaultDate || todayStr()),
       endDate: ev && ev.endDate ? ev.endDate : "",
+      desiredDate2: ev && ev.desiredDate2 ? ev.desiredDate2 : "",
+      desiredDate3: ev && ev.desiredDate3 ? ev.desiredDate3 : "",
       staff: ev ? (ev.staff || []).slice() : (defaultStaff ? [defaultStaff] : (state.myName ? [state.myName] : [])),
       content: ev ? (ev.memo || "") : "",
       customer: ev ? (ev.customer || "") : "",
@@ -776,18 +798,41 @@
 
     var form = el("form", { id: "psjForm" });
 
-    var dateInput = el("input", { type: "date", style: inputStyle(), value: draft.date });
-    dateInput.addEventListener("input", function () { draft.date = dateInput.value; });
-    form.appendChild(formField("日付", dateInput));
+    if (type === "request") {
+      var date1Input = el("input", { type: "date", style: inputStyle(), value: draft.date });
+      date1Input.addEventListener("input", function () { draft.date = date1Input.value; });
+      form.appendChild(formField("第1希望日", date1Input));
 
-    var endInput = el("input", { type: "date", style: inputStyle(), value: draft.endDate });
-    endInput.addEventListener("input", function () { draft.endDate = endInput.value; });
-    form.appendChild(formField("終了日(複数日にわたる場合)", endInput));
+      var date2Input = el("input", { type: "date", style: inputStyle(), value: draft.desiredDate2 });
+      date2Input.addEventListener("input", function () { draft.desiredDate2 = date2Input.value; });
+      form.appendChild(formField("第2希望日(任意)", date2Input));
+
+      var date3Input = el("input", { type: "date", style: inputStyle(), value: draft.desiredDate3 });
+      date3Input.addEventListener("input", function () { draft.desiredDate3 = date3Input.value; });
+      form.appendChild(formField("第3希望日(任意)", date3Input));
+    } else {
+      var dateInput = el("input", { type: "date", style: inputStyle(), value: draft.date });
+      dateInput.addEventListener("input", function () { draft.date = dateInput.value; });
+      form.appendChild(formField("日付", dateInput));
+
+      var endInput = el("input", { type: "date", style: inputStyle(), value: draft.endDate });
+      endInput.addEventListener("input", function () { draft.endDate = endInput.value; });
+      form.appendChild(formField("終了日(複数日にわたる場合)", endInput));
+    }
 
     if (type === "request") {
-      var requesterInput = el("input", { type: "text", style: inputStyle(), value: draft.requesterName, placeholder: "例: 山田(営業部)" });
-      requesterInput.addEventListener("input", function () { draft.requesterName = requesterInput.value; });
-      form.appendChild(formField("営業担当者名", requesterInput));
+      var requesterSelect = el("select", { style: inputStyle() });
+      requesterSelect.appendChild(el("option", { value: "" }, ["選択してください"]));
+      state.salesStaff.forEach(function (person) {
+        var o = el("option", { value: person.name }, [person.name]);
+        if (draft.requesterName === person.name) o.selected = true;
+        requesterSelect.appendChild(o);
+      });
+      requesterSelect.addEventListener("change", function () { draft.requesterName = requesterSelect.value; });
+      form.appendChild(formField("営業担当者名", requesterSelect));
+      if (!state.salesStaff.length) {
+        form.appendChild(el("div", { style: "font-size:11.5px;color:var(--ink-faint);margin:-8px 0 12px;" }, ["※ 設定(⚙)から営業担当者を登録してください"]));
+      }
     } else {
       var staffBox = el("div", { style: "display:flex;flex-wrap:wrap;gap:6px;" });
       state.staff.forEach(function (m) {
@@ -902,13 +947,22 @@
     if (!date) { showNotice("日付を入力してください"); return; }
     var endDate = draft.endDate || null;
     var content = draft.content.trim();
-    if (!content) { showNotice("内容を入力してください"); return; }
     var type = draft.type;
+
+    if (type === "request") {
+      if (!draft.requesterName) { showNotice("営業担当者名を選択してください"); return; }
+      if (!draft.customer.trim()) { showNotice("顧客名を入力してください"); return; }
+      if (!draft.equipment.length) { showNotice("希望装置を選択してください"); return; }
+    } else if (!content) {
+      showNotice("内容を入力してください"); return;
+    }
 
     var data = {
       type: type,
       date: date,
-      endDate: endDate,
+      endDate: type === "request" ? null : endDate,
+      desiredDate2: type === "request" ? (draft.desiredDate2 || null) : null,
+      desiredDate3: type === "request" ? (draft.desiredDate3 || null) : null,
       staff: draft.staff.slice(),
       title: content.slice(0, 40),
       memo: content,
@@ -1141,6 +1195,27 @@
       }
     }, ["+ 作業種類を追加"]));
 
+    children.push(el("div", { style: "height:1px;background:var(--border);margin:18px 0;" }));
+
+    children.push(el("div", { style: "font-size:13px;font-weight:500;margin-bottom:2px;" }, ["営業担当者一覧"]));
+    children.push(el("div", { style: "font-size:12px;color:var(--ink-soft);margin-bottom:8px;" }, ["デモリクエスト登録時のプルダウンに表示されます。変更は自動保存されます"]));
+    var salesList = el("div", { style: "display:flex;flex-direction:column;gap:6px;margin-bottom:16px;" });
+    state.salesStaff.forEach(function (person, idx) {
+      var row = el("div", { style: "display:flex;gap:6px;" });
+      var input = el("input", { type: "text", value: person.name, style: inputStyle() });
+      input.addEventListener("change", function () { state.salesStaff[idx].name = input.value.trim() || person.name; saveSalesStaffConfig(); });
+      var del = el("button", { type: "button", style: iconBtnStyle(), onclick: function () { state.salesStaff.splice(idx, 1); saveSalesStaffConfig(); render(); } }, ["×"]);
+      row.appendChild(input); row.appendChild(del);
+      salesList.appendChild(row);
+    });
+    children.push(salesList);
+    children.push(el("button", {
+      type: "button", style: pillBtnStyle(false), onclick: function () {
+        state.salesStaff.push({ id: "sales_" + Date.now(), name: "新しい担当者" });
+        saveSalesStaffConfig(); render();
+      }
+    }, ["+ 営業担当者を追加"]));
+
     var actions = el("div", { style: "display:flex;gap:8px;margin-top:20px;" });
     actions.appendChild(el("div", { style: "flex:1;" }));
     actions.appendChild(el("button", { type: "button", style: pillBtnStyle(true), onclick: closeSettings }, ["閉じる"]));
@@ -1154,6 +1229,7 @@
     state._pendingStaff = null;
     state._pendingEquipment = null;
     state._pendingCategories = null;
+    state._pendingSalesStaff = null;
     render();
   }
 
@@ -1168,6 +1244,10 @@
   function saveCategoriesConfig() {
     if (!requireDb()) return;
     writeConfigValue("categories", { items: state.categories }).catch(function (e) { showNotice("作業種類の保存に失敗しました: " + e.message); });
+  }
+  function saveSalesStaffConfig() {
+    if (!requireDb()) return;
+    writeConfigValue("salesStaff", { items: state.salesStaff }).catch(function (e) { showNotice("営業担当者一覧の保存に失敗しました: " + e.message); });
   }
 
   function modalOpen() { return state.showForm || state.showSettings; }
@@ -1200,12 +1280,14 @@
       fetchConfigValue("staff"),
       fetchConfigValue("equipment"),
       fetchConfigValue("categories"),
+      fetchConfigValue("salesStaff"),
       fetchEvents(),
     ]).then(function (results) {
       state.staff = (results[0] && results[0].members) || [];
       state.equipment = (results[1] && results[1].items) || [];
       state.categories = (results[2] && results[2].items) || [];
-      state.events = results[3];
+      state.salesStaff = (results[3] && results[3].items) || [];
+      state.events = results[4];
       state.db = true;
       state.dbReady = true;
       render();
@@ -1224,19 +1306,22 @@
     });
 
     subscribeTable("schedule_config", function () {
-      Promise.all([fetchConfigValue("staff"), fetchConfigValue("equipment"), fetchConfigValue("categories")])
+      Promise.all([fetchConfigValue("staff"), fetchConfigValue("equipment"), fetchConfigValue("categories"), fetchConfigValue("salesStaff")])
         .then(function (results) {
           var members = results[0] && results[0].members;
           var items = results[1] && results[1].items;
           var cats = results[2] && results[2].items;
+          var sales = results[3] && results[3].items;
           if (state.showSettings) {
             if (members) state._pendingStaff = members;
             if (items) state._pendingEquipment = items;
             if (cats) state._pendingCategories = cats;
+            if (sales) state._pendingSalesStaff = sales;
           } else {
             if (members) state.staff = members;
             if (items) state.equipment = items;
             if (cats) state.categories = cats;
+            if (sales) state.salesStaff = sales;
           }
           if (!modalOpen()) render();
         }).catch(function (e) { console.error(e); });

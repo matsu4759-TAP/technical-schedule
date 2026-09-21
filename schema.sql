@@ -9,6 +9,8 @@ create table if not exists public.schedule_events (
   type text not null default 'tech',
   event_date date not null,
   end_date date,
+  desired_date_2 date,
+  desired_date_3 date,
   staff text[] not null default '{}',
   title text not null default '',
   memo text,
