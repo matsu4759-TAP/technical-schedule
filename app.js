@@ -878,24 +878,36 @@
       customerInput.addEventListener("input", function () { draft.customer = customerInput.value; });
       form.appendChild(formField("顧客名・案件名", customerInput));
 
-      var eqAccent = type === "request" ? "var(--request)" : "var(--demo)";
-      var eqAccentBg = type === "request" ? "var(--request-bg)" : "var(--demo-bg)";
-      var eqBox = el("div", { style: "display:flex;flex-wrap:wrap;gap:6px;" });
-      state.equipment.forEach(function (item) {
-        var checked = draft.equipment.indexOf(item.id) >= 0;
-        var chip = el("label", { style: "display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:16px;border:1px solid " + (checked ? eqAccent : "var(--border)") + ";background:" + (checked ? eqAccentBg : "var(--surface)") + ";font-size:12.5px;cursor:pointer;" });
-        var cb = el("input", { type: "checkbox", value: item.id, style: "accent-color:" + eqAccent + ";" });
-        cb.checked = checked;
-        cb.addEventListener("change", function () {
-          var pos = draft.equipment.indexOf(item.id);
-          if (cb.checked && pos < 0) draft.equipment.push(item.id);
-          else if (!cb.checked && pos >= 0) draft.equipment.splice(pos, 1);
+      if (type === "request") {
+        var eqSelect = el("select", { style: inputStyle() });
+        eqSelect.appendChild(el("option", { value: "" }, ["選択してください"]));
+        state.equipment.forEach(function (item) {
+          var o = el("option", { value: item.id }, [item.name]);
+          if (draft.equipment.indexOf(item.id) >= 0) o.selected = true;
+          eqSelect.appendChild(o);
         });
-        chip.appendChild(cb);
-        chip.appendChild(document.createTextNode(item.name));
-        eqBox.appendChild(chip);
-      });
-      form.appendChild(formField(type === "request" ? "希望装置" : "使用装置", eqBox));
+        eqSelect.addEventListener("change", function () {
+          draft.equipment = eqSelect.value ? [eqSelect.value] : [];
+        });
+        form.appendChild(formField("希望装置", eqSelect));
+      } else {
+        var eqBox = el("div", { style: "display:flex;flex-wrap:wrap;gap:6px;" });
+        state.equipment.forEach(function (item) {
+          var checked = draft.equipment.indexOf(item.id) >= 0;
+          var chip = el("label", { style: "display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:16px;border:1px solid " + (checked ? "var(--demo)" : "var(--border)") + ";background:" + (checked ? "var(--demo-bg)" : "var(--surface)") + ";font-size:12.5px;cursor:pointer;" });
+          var cb = el("input", { type: "checkbox", value: item.id, style: "accent-color:var(--demo);" });
+          cb.checked = checked;
+          cb.addEventListener("change", function () {
+            var pos = draft.equipment.indexOf(item.id);
+            if (cb.checked && pos < 0) draft.equipment.push(item.id);
+            else if (!cb.checked && pos >= 0) draft.equipment.splice(pos, 1);
+          });
+          chip.appendChild(cb);
+          chip.appendChild(document.createTextNode(item.name));
+          eqBox.appendChild(chip);
+        });
+        form.appendChild(formField("使用装置", eqBox));
+      }
 
       if (type === "demo") {
         var resultInput = el("textarea", { rows: "2", style: inputStyle() + "resize:vertical;" }, [draft.result]);
