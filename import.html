@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="robots" content="noindex, nofollow" />
+<title>データ移行ツール</title>
+<style>
+  body { font-family: -apple-system, "Hiragino Kaku Gothic ProN", sans-serif; max-width: 640px; margin: 40px auto; padding: 0 16px; color: #1B211D; background: #F5F6F4; }
+  h1 { font-size: 20px; }
+  button { padding: 12px 20px; font-size: 15px; border-radius: 8px; border: none; background: #33587D; color: #fff; cursor: pointer; }
+  button:disabled { opacity: .5; cursor: default; }
+  #log { white-space: pre-wrap; font-family: monospace; font-size: 12.5px; background: #fff; border: 1px solid #D9DED7; border-radius: 8px; padding: 12px; margin-top: 16px; max-height: 50vh; overflow: auto; }
+  .warn { color: #A5750E; font-size: 13px; }
+</style>
+</head>
+<body>
+<h1>旧データの一括インポート</h1>
+<p class="warn">これは一度だけ実行するためのページです。実行が終わったらこのファイル(import.html / import-data.js)はリポジトリから削除してください。</p>
+<p>スタッフ・装置・作業種類の設定、および過去の予定 <b id="count">?</b> 件をこのアプリのデータベースに書き込みます。</p>
+<button id="runBtn">インポートを実行</button>
+<div id="log"></div>
+
+<script src="./config.js"></script>
+<script src="./import-data.js"></script>
+<script>
+(function(){
+  var config = window.SCHEDULE_CONFIG || {};
+  var data = window.IMPORT_DATA;
+  var logEl = document.getElementById("log");
+  var btn = document.getElementById("runBtn");
+  document.getElementById("count").textContent = data ? data.events.length : "?";
+
+  function log(msg){
+    logEl.textContent += msg + "\n";
+    logEl.scrollTop = logEl.scrollHeight;
+  }
+
+  function headers(extra){
+    return Object.assign({
+      "apikey": config.supabaseAnonKey,
+      "Authorization": "Bearer " + config.supabaseAnonKey,
+      "Content-Type": "application/json",
+    }, extra || {});
+  }
+
+  function post(table, rows, opts){
+    opts = opts || {};
+    var url = config.supabaseUrl + "/rest/v1/" + table;
+    if (opts.upsertOn) url += "?on_conflict=" + opts.upsertOn;
+    var h = headers({ "Prefer": opts.upsertOn ? "resolution=merge-duplicates,return=minimal" : "return=minimal" });
+    return fetch(url, { method: "POST", headers: h, body: JSON.stringify(rows) }).then(function(res){
+      if (!res.ok) {
+        return res.text().then(function(t){ throw new Error(table + " failed: " + res.status + " " + t); });
+      }
+    });
+  }
+
+  function toEventRow(id, d){
+    return {
+      id: id,
+      type: d.type,
+      event_date: d.date,
+      end_date: d.endDate || null,
+      staff: d.staff || [],
+      title: d.title,
+      memo: d.memo,
+      status: d.status,
+      category_id: d.categoryId,
+      customer: d.customer,
+      equipment: d.equipment || [],
+      result: d.result,
+      author_name: d.authorName,
+      updated_at: d.updatedAt || new Date().toISOString(),
+    };
+  }
+
+  btn.addEventListener("click", function(){
+    btn.disabled = true;
+    log("開始します…");
+
+    if (!data) { log("エラー: import-data.js が読み込まれていません"); return; }
+    if (!config.supabaseUrl || !config.supabaseAnonKey) { log("エラー: config.js が読み込まれていません"); return; }
+
+    post("schedule_config", [
+      { key: "staff", value: data.staff, updated_at: new Date().toISOString() },
+      { key: "equipment", value: data.equipment, updated_at: new Date().toISOString() },
+      { key: "categories", value: data.categories, updated_at: new Date().toISOString() },
+    ], { upsertOn: "key" })
+    .then(function(){
+      log("スタッフ・装置・作業種類の設定を書き込みました");
+      var rows = data.events.map(function(d){ return toEventRow(crypto.randomUUID(), d); });
+      var CHUNK = 200;
+      var i = 0;
+      function next(){
+        if (i >= rows.length) { log("完了しました。全 " + rows.length + " 件の予定を登録しました。"); return; }
+        var chunk = rows.slice(i, i + CHUNK);
+        post("schedule_events", chunk).then(function(){
+          i += CHUNK;
+          log("予定を登録中… " + Math.min(i, rows.length) + " / " + rows.length);
+          next();
+        }).catch(function(e){ log("エラー: " + e.message); btn.disabled = false; });
+      }
+      next();
+    })
+    .catch(function(e){ log("エラー: " + e.message); btn.disabled = false; });
+  });
+})();
+</script>
+</body>
+</html>
