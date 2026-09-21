@@ -18,6 +18,8 @@
   --good-bg: #E2EFE6;
   --bad: #B3413A;
   --bad-bg: #F5E2E0;
+  --sat: #2E6DA4;
+  --sun: #C0392B;
   --radius: 10px;
   --shadow: 0 10px 30px -12px rgb(27 33 29 / 0.25);
   padding-top: env(safe-area-inset-top, 0px);
@@ -44,6 +46,8 @@
     --good-bg: #1E3527;
     --bad: #E08C86;
     --bad-bg: #402320;
+    --sat: #7EB6E0;
+    --sun: #E5867A;
     --shadow: 0 10px 30px -12px rgb(0 0 0 / 0.6);
   }
 }
@@ -67,6 +71,8 @@
   --good-bg: #1E3527;
   --bad: #E08C86;
   --bad-bg: #402320;
+  --sat: #7EB6E0;
+  --sun: #E5867A;
   --shadow: 0 10px 30px -12px rgb(0 0 0 / 0.6);
 }
 

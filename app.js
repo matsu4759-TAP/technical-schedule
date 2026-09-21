@@ -317,6 +317,12 @@
 
     return wrap;
   }
+  function weekdayColor(dow) {
+    if (dow === 6) return "var(--sat)";
+    if (dow === 0) return "var(--sun)";
+    return null;
+  }
+
   function legendDot(color, label) {
     return el("div", { style: "display:flex;align-items:center;gap:6px;" }, [
       el("span", { style: "width:9px;height:9px;border-radius:50%;background:" + color + ";display:inline-block;flex-shrink:0;" }),
@@ -334,7 +340,9 @@
 
     var headRow = el("div", { style: "display:grid;grid-template-columns:repeat(7,1fr);" });
     ["月", "火", "水", "木", "金", "土", "日"].forEach(function (wd, i) {
-      headRow.appendChild(el("div", { style: "padding:8px 6px;font-size:11.5px;font-weight:500;color:" + (i >= 5 ? "var(--ink-faint)" : "var(--ink-soft)") + ";text-align:center;border-bottom:1px solid var(--border);" }, [wd]));
+      var dow = (i + 1) % 7; // Monday-start index -> JS getDay() (0=Sun..6=Sat)
+      var wdColor = weekdayColor(dow) || "var(--ink-soft)";
+      headRow.appendChild(el("div", { style: "padding:8px 6px;font-size:11.5px;font-weight:500;color:" + wdColor + ";text-align:center;border-bottom:1px solid var(--border);" }, [wd]));
     });
     wrap.appendChild(headRow);
 
@@ -358,7 +366,10 @@
       if ((i + 1) % 7 === 0) cell.style.borderRight = "none";
       cell.addEventListener("click", (function (ds) { return function () { state.selectedDate = ds; render(); }; })(dateStr));
 
-      var dnum = el("div", { class: "tabular", style: "font-size:12.5px;font-weight:" + (isToday ? "700" : "500") + ";color:" + (isToday ? "var(--tech)" : (inMonth ? "var(--ink-soft)" : "var(--ink-faint)")) + ";display:flex;align-items:center;gap:5px;margin-bottom:4px;" });
+      var dNumColor = isToday
+        ? "var(--tech)"
+        : (weekdayColor(d.getDay()) || (inMonth ? "var(--ink-soft)" : "var(--ink-faint)"));
+      var dnum = el("div", { class: "tabular", style: "font-size:12.5px;font-weight:" + (isToday ? "700" : "500") + ";color:" + dNumColor + ";display:flex;align-items:center;gap:5px;margin-bottom:4px;" });
       if (isToday) {
         dnum.appendChild(el("span", { style: "background:var(--tech);color:#fff;border-radius:50%;width:18px;height:18px;display:inline-flex;align-items:center;justify-content:center;font-size:11px;" }, [String(d.getDate())]));
       } else {
@@ -404,9 +415,10 @@
       var wd = new Date(y, m - 1, d).getDay();
       var isToday = dateStr === today;
       var isWeekend = wd === 0 || wd === 6;
+      var wdColor = isToday ? "var(--tech)" : (weekdayColor(wd) || "var(--ink-soft)");
       return el("div", { style: "width:" + colW + "px;flex-shrink:0;text-align:center;padding:5px 2px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);background:" + (isToday ? "var(--tech-bg)" : (isWeekend ? "var(--surface-2)" : "var(--surface)")) + ";" }, [
-        el("div", { class: "tabular", style: "font-size:11.5px;font-weight:" + (isToday ? "700" : "500") + ";color:" + (isToday ? "var(--tech)" : (isWeekend ? "var(--ink-faint)" : "var(--ink-soft)")) + ";" }, [String(d)]),
-        el("div", { style: "font-size:9.5px;color:var(--ink-faint);" }, [WEEKDAY_JA[wd]])
+        el("div", { class: "tabular", style: "font-size:11.5px;font-weight:" + (isToday ? "700" : "500") + ";color:" + wdColor + ";" }, [String(d)]),
+        el("div", { style: "font-size:9.5px;color:" + (weekdayColor(wd) || "var(--ink-faint)") + ";" }, [WEEKDAY_JA[wd]])
       ]);
     }
 
