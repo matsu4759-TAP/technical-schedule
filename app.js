@@ -391,7 +391,7 @@
       dayEvents.slice(0, CHIP_LIMIT).forEach(function (ev) {
         var isRequest = ev.type === "request";
         var label = (ev.type === "demo" || isRequest) ? (ev.customer || ev.title) : (ev.staff && ev.staff[0] ? ev.staff[0] + " " : "") + ev.title;
-        if (isRequest) label = "(要望)" + label;
+        if (isRequest) label = "(リクエスト)" + label;
         var col = eventColor(ev);
         var chipStyle = "font-size:10.8px;padding:2px 5px;border-radius:5px;background:" + col.chipBg + ";color:" + col.chipFg + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;";
         if (isRequest) chipStyle += "border:1px dashed " + col.chipFg + ";background:transparent;";
