@@ -117,8 +117,9 @@
       var member = staffByName(ev.staff && ev.staff[0]);
       if (member) return { fg: member.color, bg: member.color + "26", chipFg: "#1B211D", chipBg: member.color };
     }
-    var isDemo = ev.type === "demo";
-    var base = isDemo ? { fg: "var(--demo)", bg: "var(--demo-bg)" } : { fg: "var(--tech)", bg: "var(--tech-bg)" };
+    var base = ev.type === "demo" ? { fg: "var(--demo)", bg: "var(--demo-bg)" }
+      : ev.type === "request" ? { fg: "var(--request)", bg: "var(--request-bg)" }
+      : { fg: "var(--tech)", bg: "var(--tech-bg)" };
     base.chipFg = base.fg;
     base.chipBg = base.bg;
     return base;
@@ -195,7 +196,11 @@
       root.innerHTML = "";
       root.appendChild(renderHeader());
       root.appendChild(renderLegend());
-      root.appendChild(state.mainView === "member" ? renderMemberGrid() : renderCalendar());
+      root.appendChild(
+        state.mainView === "member" ? renderMemberGrid() :
+        state.mainView === "request" ? renderRequestList() :
+        renderCalendar()
+      );
       if (state.selectedDate && !state.showForm) root.appendChild(renderDayPanel());
       if (state.showForm) root.appendChild(renderFormModal());
       if (state.showSettings) root.appendChild(renderSettingsModal());
@@ -279,11 +284,14 @@
 
     var viewRow = el("div", { style: "display:flex;gap:4px;align-items:center;" });
     viewRow.appendChild(el("span", { style: "color:var(--ink-faint);margin-right:2px;" }, ["表示:"]));
-    [["month", "月"], ["member", "メンバー別"]].forEach(function (pair) {
+    var pendingRequests = state.events.filter(function (e) { return e.type === "request"; }).length;
+    [["month", "月"], ["member", "メンバー別"], ["request", "デモリクエスト一覧" + (pendingRequests ? "(" + pendingRequests + ")" : "")]].forEach(function (pair) {
       var active = state.mainView === pair[0];
+      var accent = pair[0] === "request" ? "var(--request)" : "var(--tech)";
+      var accentBg = pair[0] === "request" ? "var(--request-bg)" : "var(--tech-bg)";
       viewRow.appendChild(el("button", {
         type: "button",
-        style: "padding:4px 10px;border-radius:14px;border:1px solid " + (active ? "var(--tech)" : "var(--border)") + ";background:" + (active ? "var(--tech-bg)" : "var(--surface)") + ";color:" + (active ? "var(--tech)" : "var(--ink-soft)") + ";font-size:11.5px;font-weight:500;",
+        style: "padding:4px 10px;border-radius:14px;border:1px solid " + (active ? accent : "var(--border)") + ";background:" + (active ? accentBg : "var(--surface)") + ";color:" + (active ? accent : "var(--ink-soft)") + ";font-size:11.5px;font-weight:500;",
         onclick: function () { state.mainView = pair[0]; safeStorage.set("psj_mainview", pair[0]); render(); }
       }, [pair[1]]));
     });
@@ -312,6 +320,7 @@
     } else {
       swatchRow.appendChild(legendDot("var(--tech)", "技術部予定"));
       swatchRow.appendChild(legendDot("var(--demo)", "デモ予定"));
+      swatchRow.appendChild(legendDot("var(--request)", "デモリクエスト(未確定)"));
     }
     wrap.appendChild(swatchRow);
 
@@ -380,10 +389,13 @@
       var chipsWrap = el("div", { style: "display:flex;flex-direction:column;gap:2px;min-width:0;" });
       var CHIP_LIMIT = 9;
       dayEvents.slice(0, CHIP_LIMIT).forEach(function (ev) {
-        var isDemo = ev.type === "demo";
-        var label = isDemo ? (ev.customer || ev.title) : (ev.staff && ev.staff[0] ? ev.staff[0] + " " : "") + ev.title;
+        var isRequest = ev.type === "request";
+        var label = (ev.type === "demo" || isRequest) ? (ev.customer || ev.title) : (ev.staff && ev.staff[0] ? ev.staff[0] + " " : "") + ev.title;
+        if (isRequest) label = "(要望)" + label;
         var col = eventColor(ev);
-        chipsWrap.appendChild(el("div", { style: "font-size:10.8px;padding:2px 5px;border-radius:5px;background:" + col.chipBg + ";color:" + col.chipFg + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;" }, [label]));
+        var chipStyle = "font-size:10.8px;padding:2px 5px;border-radius:5px;background:" + col.chipBg + ";color:" + col.chipFg + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;";
+        if (isRequest) chipStyle += "border:1px dashed " + col.chipFg + ";background:transparent;";
+        chipsWrap.appendChild(el("div", { style: chipStyle }, [label]));
       });
       if (dayEvents.length > CHIP_LIMIT) {
         chipsWrap.appendChild(el("div", { style: "font-size:10.5px;color:var(--ink-faint);padding-left:5px;" }, ["+" + (dayEvents.length - CHIP_LIMIT)]));
@@ -455,7 +467,7 @@
         cell.addEventListener("click", (function (ds, evs, name) { return function () { eventCellClick(ds, evs, name); }; })(dateStr, cellEvents, mem.name));
         cellEvents.slice(0, 2).forEach(function (ev) {
           var col = eventColor(ev);
-          var label = ev.type === "demo" ? (ev.customer || ev.title) : ev.title;
+          var label = (ev.type === "demo" || ev.type === "request") ? (ev.customer || ev.title) : ev.title;
           cell.appendChild(el("div", { style: "font-size:9px;line-height:1.3;padding:1px 3px;border-radius:4px;background:" + col.chipBg + ";color:" + col.chipFg + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;" }, [label]));
         });
         if (cellEvents.length > 2) {
@@ -515,7 +527,7 @@
         cell4.addEventListener("click", (function (ds, evs) { return function () { eventCellClick(ds, evs, null); }; })(dateStr4, cellEvents4));
         cellEvents4.slice(0, 2).forEach(function (ev) {
           var col = eventColor(ev);
-          var label = ev.type === "demo" ? (ev.customer || ev.title) : ev.title;
+          var label = (ev.type === "demo" || ev.type === "request") ? (ev.customer || ev.title) : ev.title;
           cell4.appendChild(el("div", { style: "font-size:9px;line-height:1.3;padding:1px 3px;border-radius:4px;background:" + col.chipBg + ";color:" + col.chipFg + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:1px;" }, [label]));
         });
         uRow.appendChild(cell4);
@@ -524,6 +536,30 @@
     }
 
     wrap.appendChild(table);
+    return wrap;
+  }
+
+  function renderRequestList() {
+    var wrap = el("div", { style: "display:flex;flex-direction:column;gap:10px;" });
+    var requests = state.events.filter(function (e) { return e.type === "request"; }).slice().sort(function (a, b) {
+      return a.date < b.date ? -1 : a.date > b.date ? 1 : 0;
+    });
+    if (!requests.length) {
+      wrap.appendChild(el("div", { style: "background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;text-align:center;color:var(--ink-faint);font-size:13px;" }, ["デモリクエストはまだありません"]));
+    } else {
+      requests.forEach(function (ev) {
+        var p = parseYMD(ev.date);
+        var dateLabel = p.y + "年" + p.m + "月" + p.d + "日" + (ev.endDate && ev.endDate !== ev.date ? (" 〜 " + ev.endDate) : "");
+        var item = el("div", {});
+        item.appendChild(el("div", { style: "font-size:11.5px;color:var(--ink-faint);margin-bottom:4px;font-weight:500;" }, [dateLabel]));
+        item.appendChild(renderEventRow(ev));
+        wrap.appendChild(item);
+      });
+    }
+    wrap.appendChild(el("button", {
+      style: pillBtnStyle(true) + "margin-top:4px;",
+      onclick: function () { openForm(null, todayStr(), null, "request"); }
+    }, ["+ デモリクエストを追加"]));
     return wrap;
   }
 
@@ -579,28 +615,32 @@
 
   function renderEventRow(ev) {
     var isDemo = ev.type === "demo";
+    var isRequest = ev.type === "request";
+    var showAsCustomer = isDemo || isRequest;
     var col = eventColor(ev);
     var accent = col.fg;
-    var row = el("div", { style: "border:1px solid var(--border);border-left:3px solid " + accent + ";border-radius:8px;padding:10px 12px;margin-bottom:8px;background:var(--surface);" });
+    var row = el("div", { style: "border:1px solid var(--border);border-left:3px solid " + accent + ";border-radius:8px;padding:10px 12px;margin-bottom:8px;background:var(--surface);" + (isRequest ? "border-style:dashed;" : "") });
 
     var top = el("div", { style: "display:flex;justify-content:space-between;gap:8px;align-items:flex-start;" });
     var titleCol = el("div", { style: "display:flex;flex-direction:column;gap:3px;" });
-    var kicker = el("div", { style: "display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:" + accent + ";" }, [isDemo ? "デモ" : "技術部"]);
+    var kicker = el("div", { style: "display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:" + accent + ";" }, [isRequest ? "デモリクエスト" : (isDemo ? "デモ" : "技術部")]);
     var cat = categoryById(ev.categoryId);
     if (cat) kicker.appendChild(el("span", { style: "font-size:10.5px;padding:1px 7px;border-radius:9px;background:var(--surface-2);color:var(--ink-soft);font-weight:500;" }, [cat.name]));
     titleCol.appendChild(kicker);
-    titleCol.appendChild(el("div", { style: "font-size:13.5px;font-weight:500;" }, [isDemo ? (ev.customer || ev.title) : ev.title]));
+    titleCol.appendChild(el("div", { style: "font-size:13.5px;font-weight:500;" }, [showAsCustomer ? (ev.customer || ev.title) : ev.title]));
+    if (isRequest && ev.requesterName) titleCol.appendChild(el("div", { style: "font-size:11.5px;color:var(--ink-soft);" }, ["営業担当: " + ev.requesterName]));
     if (ev.staff && ev.staff.length) titleCol.appendChild(el("div", { style: "font-size:11.5px;color:var(--ink-soft);" }, ["担当: " + ev.staff.join("・")]));
     if (ev.memo && ev.memo !== ev.title) titleCol.appendChild(el("div", { style: "font-size:12px;color:var(--ink-soft);white-space:pre-wrap;" }, [ev.memo]));
-    if (isDemo && ev.equipment && ev.equipment.length) {
+    if (showAsCustomer && ev.equipment && ev.equipment.length) {
       var eqNames = ev.equipment.map(function (id) { var f = state.equipment.find(function (x) { return x.id === id; }); return f ? f.name : id; }).join("・");
-      titleCol.appendChild(el("div", { style: "font-size:11.5px;color:var(--ink-faint);" }, ["使用装置: " + eqNames]));
+      titleCol.appendChild(el("div", { style: "font-size:11.5px;color:var(--ink-faint);" }, [(isRequest ? "希望装置: " : "使用装置: ") + eqNames]));
     }
     if (ev.status) titleCol.appendChild(el("span", { style: "font-size:10.5px;padding:2px 7px;border-radius:10px;background:var(--surface-2);color:var(--ink-soft);display:inline-block;width:fit-content;margin-top:2px;" }, [ev.status]));
     if (isDemo && ev.result) titleCol.appendChild(el("div", { style: "font-size:12px;color:var(--good);margin-top:2px;" }, ["結果: " + ev.result]));
     if (ev.endDate && ev.endDate !== ev.date) titleCol.appendChild(el("div", { style: "font-size:11px;color:var(--ink-faint);" }, [ev.date + " 〜 " + ev.endDate]));
 
     var btns = el("div", { style: "display:flex;gap:4px;flex-shrink:0;" });
+    if (isRequest) btns.appendChild(el("button", { style: pillBtnStyle(true) + "padding:6px 10px;font-size:11.5px;", onclick: function () { convertRequest(ev); } }, ["予定に変換"]));
     btns.appendChild(el("button", { style: iconBtnStyle() + "font-size:12px;", title: "編集", onclick: function () { openForm(ev, ev.date); } }, ["✎"]));
     btns.appendChild(el("button", { style: iconBtnStyle() + "font-size:12px;color:var(--bad);", title: "削除", onclick: function () { deleteEvent(ev); } }, ["🗑"]));
 
@@ -627,6 +667,7 @@
       equipment: data.equipment || [],
       result: data.result,
       author_name: data.authorName,
+      requester_name: data.requesterName,
       updated_at: data.updatedAt,
     };
   }
@@ -645,6 +686,7 @@
       equipment: row.equipment || [],
       result: row.result,
       authorName: row.author_name,
+      requesterName: row.requester_name,
       updatedAt: row.updated_at,
     };
   }
@@ -677,10 +719,12 @@
     });
   }
 
-  function openForm(ev, defaultDate, defaultStaff) {
+  function openForm(ev, defaultDate, defaultStaff, forceType) {
     state.editingEvent = ev;
+    var type = forceType || (ev ? ev.type : "tech");
+    var typeChanged = ev && forceType && forceType !== ev.type;
     state.formDraft = {
-      type: ev ? ev.type : "tech",
+      type: type,
       date: ev ? ev.date : (defaultDate || todayStr()),
       endDate: ev && ev.endDate ? ev.endDate : "",
       staff: ev ? (ev.staff || []).slice() : (defaultStaff ? [defaultStaff] : (state.myName ? [state.myName] : [])),
@@ -688,11 +732,20 @@
       customer: ev ? (ev.customer || "") : "",
       equipment: ev ? (ev.equipment || []).slice() : [],
       result: ev ? (ev.result || "") : "",
-      status: ev ? (ev.status || "予定") : "予定",
+      status: (ev && !typeChanged) ? (ev.status || defaultStatusFor(type)) : defaultStatusFor(type),
       categoryId: ev ? (ev.categoryId || null) : null,
+      requesterName: ev ? (ev.requesterName || "") : "",
     };
     state.showForm = true;
     render();
+  }
+
+  function defaultStatusFor(type) {
+    return type === "request" ? "未対応" : "予定";
+  }
+
+  function convertRequest(ev) {
+    openForm(ev, ev.date, null, "demo");
   }
 
   function renderFormModal() {
@@ -707,14 +760,17 @@
       el("button", { style: iconBtnStyle(), onclick: closeForm }, ["×"])
     ]));
 
+    var TYPE_LABEL = { tech: "技術部予定", demo: "デモ予定", request: "デモリクエスト" };
+    var TYPE_COLOR = { tech: "var(--tech)", demo: "var(--demo)", request: "var(--request)" };
+    var TYPE_BG = { tech: "var(--tech-bg)", demo: "var(--demo-bg)", request: "var(--request-bg)" };
     var typeRow = el("div", { style: "display:flex;gap:8px;margin-bottom:14px;" });
-    ["tech", "demo"].forEach(function (t) {
+    ["tech", "demo", "request"].forEach(function (t) {
       var active = type === t;
       typeRow.appendChild(el("button", {
         type: "button",
-        style: "flex:1;padding:9px;border-radius:8px;border:1px solid " + (active ? (t === "tech" ? "var(--tech)" : "var(--demo)") : "var(--border)") + ";background:" + (active ? (t === "tech" ? "var(--tech-bg)" : "var(--demo-bg)") : "var(--surface)") + ";color:" + (active ? (t === "tech" ? "var(--tech)" : "var(--demo)") : "var(--ink-soft)") + ";font-size:13px;font-weight:500;",
-        onclick: function () { draft.type = t; render(); }
-      }, [t === "tech" ? "技術部予定" : "デモ予定"]));
+        style: "flex:1;padding:9px;border-radius:8px;border:1px solid " + (active ? TYPE_COLOR[t] : "var(--border)") + ";background:" + (active ? TYPE_BG[t] : "var(--surface)") + ";color:" + (active ? TYPE_COLOR[t] : "var(--ink-soft)") + ";font-size:12.5px;font-weight:500;",
+        onclick: function () { draft.type = t; draft.status = defaultStatusFor(t); render(); }
+      }, [TYPE_LABEL[t]]));
     });
     children.push(typeRow);
 
@@ -728,27 +784,33 @@
     endInput.addEventListener("input", function () { draft.endDate = endInput.value; });
     form.appendChild(formField("終了日(複数日にわたる場合)", endInput));
 
-    var staffBox = el("div", { style: "display:flex;flex-wrap:wrap;gap:6px;" });
-    state.staff.forEach(function (m) {
-      var checked = draft.staff.indexOf(m.name) >= 0;
-      var chip = el("label", { style: "display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:16px;border:1px solid " + (checked ? m.color : "var(--border)") + ";background:" + (checked ? m.color + "26" : "var(--surface)") + ";font-size:12.5px;cursor:pointer;" });
-      var cb = el("input", { type: "checkbox", value: m.name, style: "accent-color:" + m.color + ";" });
-      cb.checked = checked;
-      cb.addEventListener("change", function () {
-        var pos = draft.staff.indexOf(m.name);
-        if (cb.checked && pos < 0) draft.staff.push(m.name);
-        else if (!cb.checked && pos >= 0) draft.staff.splice(pos, 1);
+    if (type === "request") {
+      var requesterInput = el("input", { type: "text", style: inputStyle(), value: draft.requesterName, placeholder: "例: 山田(営業部)" });
+      requesterInput.addEventListener("input", function () { draft.requesterName = requesterInput.value; });
+      form.appendChild(formField("営業担当者名", requesterInput));
+    } else {
+      var staffBox = el("div", { style: "display:flex;flex-wrap:wrap;gap:6px;" });
+      state.staff.forEach(function (m) {
+        var checked = draft.staff.indexOf(m.name) >= 0;
+        var chip = el("label", { style: "display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:16px;border:1px solid " + (checked ? m.color : "var(--border)") + ";background:" + (checked ? m.color + "26" : "var(--surface)") + ";font-size:12.5px;cursor:pointer;" });
+        var cb = el("input", { type: "checkbox", value: m.name, style: "accent-color:" + m.color + ";" });
+        cb.checked = checked;
+        cb.addEventListener("change", function () {
+          var pos = draft.staff.indexOf(m.name);
+          if (cb.checked && pos < 0) draft.staff.push(m.name);
+          else if (!cb.checked && pos >= 0) draft.staff.splice(pos, 1);
+        });
+        chip.appendChild(cb);
+        chip.appendChild(el("span", { style: "width:7px;height:7px;border-radius:50%;background:" + m.color + ";display:inline-block;" }));
+        chip.appendChild(document.createTextNode(m.name));
+        staffBox.appendChild(chip);
       });
-      chip.appendChild(cb);
-      chip.appendChild(el("span", { style: "width:7px;height:7px;border-radius:50%;background:" + m.color + ";display:inline-block;" }));
-      chip.appendChild(document.createTextNode(m.name));
-      staffBox.appendChild(chip);
-    });
-    form.appendChild(formField("担当者", staffBox));
+      form.appendChild(formField("担当者", staffBox));
+    }
 
     var contentInput = el("textarea", { rows: "3", style: inputStyle() + "resize:vertical;" }, [draft.content]);
     contentInput.addEventListener("input", function () { draft.content = contentInput.value; });
-    form.appendChild(formField(type === "demo" ? "デモ内容" : "内容", contentInput));
+    form.appendChild(formField(type === "demo" ? "デモ内容" : (type === "request" ? "リクエスト内容" : "内容"), contentInput));
 
     var catBox = el("div", { style: "display:flex;flex-wrap:wrap;gap:6px;" });
     catBox.appendChild(el("button", {
@@ -766,16 +828,18 @@
     });
     form.appendChild(formField("作業種類(任意)", catBox));
 
-    if (type === "demo") {
+    if (type === "demo" || type === "request") {
       var customerInput = el("input", { type: "text", style: inputStyle(), value: draft.customer, placeholder: "例: 〇〇株式会社" });
       customerInput.addEventListener("input", function () { draft.customer = customerInput.value; });
       form.appendChild(formField("顧客名・案件名", customerInput));
 
+      var eqAccent = type === "request" ? "var(--request)" : "var(--demo)";
+      var eqAccentBg = type === "request" ? "var(--request-bg)" : "var(--demo-bg)";
       var eqBox = el("div", { style: "display:flex;flex-wrap:wrap;gap:6px;" });
       state.equipment.forEach(function (item) {
         var checked = draft.equipment.indexOf(item.id) >= 0;
-        var chip = el("label", { style: "display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:16px;border:1px solid " + (checked ? "var(--demo)" : "var(--border)") + ";background:" + (checked ? "var(--demo-bg)" : "var(--surface)") + ";font-size:12.5px;cursor:pointer;" });
-        var cb = el("input", { type: "checkbox", value: item.id, style: "accent-color:var(--demo);" });
+        var chip = el("label", { style: "display:flex;align-items:center;gap:5px;padding:6px 10px;border-radius:16px;border:1px solid " + (checked ? eqAccent : "var(--border)") + ";background:" + (checked ? eqAccentBg : "var(--surface)") + ";font-size:12.5px;cursor:pointer;" });
+        var cb = el("input", { type: "checkbox", value: item.id, style: "accent-color:" + eqAccent + ";" });
         cb.checked = checked;
         cb.addEventListener("change", function () {
           var pos = draft.equipment.indexOf(item.id);
@@ -786,15 +850,18 @@
         chip.appendChild(document.createTextNode(item.name));
         eqBox.appendChild(chip);
       });
-      form.appendChild(formField("使用装置", eqBox));
+      form.appendChild(formField(type === "request" ? "希望装置" : "使用装置", eqBox));
 
-      var resultInput = el("textarea", { rows: "2", style: inputStyle() + "resize:vertical;" }, [draft.result]);
-      resultInput.addEventListener("input", function () { draft.result = resultInput.value; });
-      form.appendChild(formField("結果・メモ", resultInput));
+      if (type === "demo") {
+        var resultInput = el("textarea", { rows: "2", style: inputStyle() + "resize:vertical;" }, [draft.result]);
+        resultInput.addEventListener("input", function () { draft.result = resultInput.value; });
+        form.appendChild(formField("結果・メモ", resultInput));
+      }
     }
 
+    var STATUS_OPTIONS = type === "request" ? ["未対応", "調整中", "確定", "却下"] : ["予定", "確定", "完了", "キャンセル"];
     var statusSel = el("select", { style: inputStyle() });
-    ["予定", "確定", "完了", "キャンセル"].forEach(function (s) {
+    STATUS_OPTIONS.forEach(function (s) {
       var o = el("option", { value: s }, [s]);
       if (draft.status === s) o.selected = true;
       statusSel.appendChild(o);
@@ -848,6 +915,7 @@
       status: draft.status,
       categoryId: draft.categoryId || null,
       authorName: state.myName || (existingEv ? existingEv.authorName : "") || "",
+      requesterName: type === "request" ? draft.requesterName.trim() : null,
       updatedAt: new Date().toISOString(),
     };
 
@@ -876,6 +944,10 @@
         showConfirmDialog("選択した装置は既に「" + (conflict.customer || conflict.title) + "」で予約されています。このまま保存しますか?", writeEvent);
         return;
       }
+    } else if (type === "request") {
+      data.customer = draft.customer.trim();
+      data.equipment = draft.equipment.slice();
+      data.result = null;
     } else {
       data.customer = null; data.equipment = []; data.result = null;
     }

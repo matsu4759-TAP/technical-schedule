@@ -18,6 +18,7 @@ create table if not exists public.schedule_events (
   equipment text[] not null default '{}',
   result text,
   author_name text,
+  requester_name text,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
