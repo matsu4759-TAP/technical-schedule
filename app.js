@@ -113,7 +113,7 @@
   }
 
   function eventColor(ev) {
-    if (state.colorMode === "staff") {
+    if (state.colorMode === "staff" && ev.type !== "request") {
       var member = staffByName(ev.staff && ev.staff[0]);
       if (member) return { fg: member.color, bg: member.color + "26", chipFg: "#1B211D", chipBg: member.color };
     }
@@ -325,6 +325,7 @@
     var swatchRow = el("div", { style: "display:flex;flex-wrap:wrap;gap:12px;" });
     if (state.colorMode === "staff") {
       state.staff.forEach(function (m) { swatchRow.appendChild(legendDot(m.color, m.name)); });
+      swatchRow.appendChild(legendDot("var(--request)", "デモリクエスト(未確定)"));
     } else {
       swatchRow.appendChild(legendDot("var(--tech)", "技術部予定"));
       swatchRow.appendChild(legendDot("var(--demo)", "デモ予定"));
@@ -975,7 +976,7 @@
       endDate: type === "request" ? null : endDate,
       desiredDate2: type === "request" ? (draft.desiredDate2 || null) : null,
       desiredDate3: type === "request" ? (draft.desiredDate3 || null) : null,
-      staff: draft.staff.slice(),
+      staff: type === "request" ? [] : draft.staff.slice(),
       title: content.slice(0, 40),
       memo: content,
       status: draft.status,
