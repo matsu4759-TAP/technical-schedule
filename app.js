@@ -114,7 +114,7 @@
 
   function eventColor(ev) {
     if (ev.type === "demo") {
-      return { fg: "#9E1B32", bg: "#D398A3", chipFg: "#1B211D", chipBg: "#D398A3" };
+      return { fg: "#9E1B32", bg: "#FF7F7F", chipFg: "#1B211D", chipBg: "#FF7F7F" };
     }
     if (state.colorMode === "staff" && ev.type !== "request") {
       var member = staffByName(ev.staff && ev.staff[0]);
@@ -327,11 +327,11 @@
     var swatchRow = el("div", { style: "display:flex;flex-wrap:wrap;gap:12px;" });
     if (state.colorMode === "staff") {
       state.staff.forEach(function (m) { swatchRow.appendChild(legendDot(m.color, m.name)); });
-      swatchRow.appendChild(legendDot("#D398A3", "デモ予定"));
+      swatchRow.appendChild(legendDot("#FF7F7F", "デモ予定"));
       swatchRow.appendChild(legendDot("var(--request)", "デモリクエスト(未確定)"));
     } else {
       swatchRow.appendChild(legendDot("var(--tech)", "技術部予定"));
-      swatchRow.appendChild(legendDot("#D398A3", "デモ予定"));
+      swatchRow.appendChild(legendDot("#FF7F7F", "デモ予定"));
       swatchRow.appendChild(legendDot("var(--request)", "デモリクエスト(未確定)"));
     }
     wrap.appendChild(swatchRow);
