@@ -113,12 +113,14 @@
   }
 
   function eventColor(ev) {
+    if (ev.type === "demo") {
+      return { fg: "#9E1B32", bg: "#C06B7A", chipFg: "#1B211D", chipBg: "#C06B7A" };
+    }
     if (state.colorMode === "staff" && ev.type !== "request") {
       var member = staffByName(ev.staff && ev.staff[0]);
       if (member) return { fg: member.color, bg: member.color + "26", chipFg: "#1B211D", chipBg: member.color };
     }
-    var base = ev.type === "demo" ? { fg: "var(--demo)", bg: "var(--demo-bg)" }
-      : ev.type === "request" ? { fg: "var(--request)", bg: "var(--request-bg)" }
+    var base = ev.type === "request" ? { fg: "var(--request)", bg: "var(--request-bg)" }
       : { fg: "var(--tech)", bg: "var(--tech-bg)" };
     base.chipFg = base.fg;
     base.chipBg = base.bg;
@@ -325,10 +327,11 @@
     var swatchRow = el("div", { style: "display:flex;flex-wrap:wrap;gap:12px;" });
     if (state.colorMode === "staff") {
       state.staff.forEach(function (m) { swatchRow.appendChild(legendDot(m.color, m.name)); });
+      swatchRow.appendChild(legendDot("#C06B7A", "デモ予定"));
       swatchRow.appendChild(legendDot("var(--request)", "デモリクエスト(未確定)"));
     } else {
       swatchRow.appendChild(legendDot("var(--tech)", "技術部予定"));
-      swatchRow.appendChild(legendDot("var(--demo)", "デモ予定"));
+      swatchRow.appendChild(legendDot("#C06B7A", "デモ予定"));
       swatchRow.appendChild(legendDot("var(--request)", "デモリクエスト(未確定)"));
     }
     wrap.appendChild(swatchRow);
@@ -399,8 +402,10 @@
       var CHIP_LIMIT = 9;
       dayEvents.slice(0, CHIP_LIMIT).forEach(function (ev) {
         var isRequest = ev.type === "request";
-        var label = (ev.type === "demo" || isRequest) ? (ev.customer || ev.title) : (ev.staff && ev.staff[0] ? ev.staff[0] + " " : "") + ev.title;
+        var isDemo = ev.type === "demo";
+        var label = (isDemo || isRequest) ? (ev.customer || ev.title) : (ev.staff && ev.staff[0] ? ev.staff[0] + " " : "") + ev.title;
         if (isRequest) label = "(リクエスト)" + label;
+        else if (isDemo) label = "(デモ)" + label;
         var col = eventColor(ev);
         var chipStyle = "font-size:10.8px;padding:2px 5px;border-radius:5px;background:" + col.chipBg + ";color:" + col.chipFg + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;";
         if (isRequest) chipStyle += "border:1px dashed " + col.chipFg + ";background:transparent;";
@@ -784,8 +789,8 @@
     ]));
 
     var TYPE_LABEL = { tech: "技術部予定", demo: "デモ予定", request: "デモリクエスト" };
-    var TYPE_COLOR = { tech: "var(--tech)", demo: "var(--demo)", request: "var(--request)" };
-    var TYPE_BG = { tech: "var(--tech-bg)", demo: "var(--demo-bg)", request: "var(--request-bg)" };
+    var TYPE_COLOR = { tech: "var(--tech)", demo: "#9E1B32", request: "var(--request)" };
+    var TYPE_BG = { tech: "var(--tech-bg)", demo: "#F0DDE0", request: "var(--request-bg)" };
     var typeRow = el("div", { style: "display:flex;gap:8px;margin-bottom:14px;" });
     ["tech", "demo", "request"].forEach(function (t) {
       var active = type === t;
