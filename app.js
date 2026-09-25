@@ -751,7 +751,7 @@
       desiredDate2: ev && ev.desiredDate2 ? ev.desiredDate2 : "",
       desiredDate3: ev && ev.desiredDate3 ? ev.desiredDate3 : "",
       staff: ev ? (ev.staff || []).slice() : (defaultStaff ? [defaultStaff] : (state.myName ? [state.myName] : [])),
-      content: ev ? (ev.memo || "") : "",
+      content: ev ? (ev.memo || (type !== "request" ? (ev.customer || "") : "")) : "",
       customer: ev ? (ev.customer || "") : "",
       equipment: ev ? (ev.equipment || []).slice() : [],
       result: ev ? (ev.result || "") : "",
