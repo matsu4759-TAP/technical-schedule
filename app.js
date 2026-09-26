@@ -404,7 +404,7 @@
         var isRequest = ev.type === "request";
         var isDemo = ev.type === "demo";
         var label = (isDemo || isRequest) ? (ev.customer || ev.title) : (ev.staff && ev.staff[0] ? ev.staff[0] + " " : "") + ev.title;
-        if (isRequest) label = "(リクエスト)" + label;
+        if (isRequest) label = "デモリクエスト：" + label;
         else if (isDemo) label = "デモ：" + label;
         var col = eventColor(ev);
         var chipStyle = "font-size:10.8px;padding:2px 5px;border-radius:5px;background:" + col.chipBg + ";color:" + col.chipFg + ";white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;";
