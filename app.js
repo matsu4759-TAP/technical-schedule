@@ -788,7 +788,7 @@
       el("button", { style: iconBtnStyle(), onclick: closeForm }, ["×"])
     ]));
 
-    var TYPE_LABEL = { tech: "技術部予定", demo: "デモ予定", request: "デモリクエスト" };
+    var TYPE_LABEL = { tech: "技術部予定", demo: "デモ測定", request: "デモリクエスト" };
     var TYPE_COLOR = { tech: "var(--tech)", demo: "#9E1B32", request: "var(--request)" };
     var TYPE_BG = { tech: "var(--tech-bg)", demo: "#F0DDE0", request: "var(--request-bg)" };
     var typeRow = el("div", { style: "display:flex;gap:8px;margin-bottom:14px;" });
@@ -971,7 +971,7 @@
       if (!draft.requesterName) { showNotice("営業担当者名を選択してください"); return; }
       if (!draft.customer.trim()) { showNotice("顧客名を入力してください"); return; }
       if (!draft.equipment.length) { showNotice("希望装置を選択してください"); return; }
-    } else if (!content) {
+    } else if (type === "tech" && !content) {
       showNotice("内容を入力してください"); return;
     }
 
