@@ -174,7 +174,7 @@
 
   function eventOccursOn(e, dateStr) {
     if (e.type === "request") {
-      return e.date === dateStr || e.desiredDate2 === dateStr || e.desiredDate3 === dateStr;
+      return e.date === dateStr || e.desiredDate2 === dateStr || e.desiredDate3 === dateStr || e.desiredDate4 === dateStr;
     }
     var end = e.endDate || e.date;
     return e.date <= dateStr && dateStr <= end;
@@ -562,7 +562,7 @@
       wrap.appendChild(el("div", { style: "background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;text-align:center;color:var(--ink-faint);font-size:13px;" }, ["デモリクエストはまだありません"]));
     } else {
       requests.forEach(function (ev) {
-        var candidates = [ev.date, ev.desiredDate2, ev.desiredDate3].filter(Boolean);
+        var candidates = [ev.date, ev.desiredDate2, ev.desiredDate3, ev.desiredDate4].filter(Boolean);
         var dateLabel = candidates.map(function (d) {
           var p = parseYMD(d);
           return p.y + "年" + p.m + "月" + p.d + "日";
@@ -655,7 +655,7 @@
     if (ev.status) titleCol.appendChild(el("span", { style: "font-size:10.5px;padding:2px 7px;border-radius:10px;background:var(--surface-2);color:var(--ink-soft);display:inline-block;width:fit-content;margin-top:2px;" }, [ev.status]));
     if (isDemo && ev.result) titleCol.appendChild(el("div", { style: "font-size:12px;color:var(--good);margin-top:2px;" }, ["結果: " + ev.result]));
     if (isRequest) {
-      var candidates = [ev.date, ev.desiredDate2, ev.desiredDate3].filter(Boolean);
+      var candidates = [ev.date, ev.desiredDate2, ev.desiredDate3, ev.desiredDate4].filter(Boolean);
       if (candidates.length > 1) titleCol.appendChild(el("div", { style: "font-size:11px;color:var(--ink-faint);" }, ["候補日: " + candidates.join(" / ")]));
     } else if (ev.endDate && ev.endDate !== ev.date) {
       titleCol.appendChild(el("div", { style: "font-size:11px;color:var(--ink-faint);" }, [ev.date + " 〜 " + ev.endDate]));
@@ -682,6 +682,7 @@
       end_date: data.endDate || null,
       desired_date_2: data.desiredDate2 || null,
       desired_date_3: data.desiredDate3 || null,
+      desired_date_4: data.desiredDate4 || null,
       staff: data.staff || [],
       title: data.title,
       memo: data.memo,
@@ -703,6 +704,7 @@
       endDate: row.end_date,
       desiredDate2: row.desired_date_2,
       desiredDate3: row.desired_date_3,
+      desiredDate4: row.desired_date_4,
       staff: row.staff || [],
       title: row.title,
       memo: row.memo,
@@ -755,6 +757,7 @@
       endDate: ev && ev.endDate ? ev.endDate : "",
       desiredDate2: ev && ev.desiredDate2 ? ev.desiredDate2 : "",
       desiredDate3: ev && ev.desiredDate3 ? ev.desiredDate3 : "",
+      desiredDate4: ev && ev.desiredDate4 ? ev.desiredDate4 : "",
       staff: ev ? (ev.staff || []).slice() : (defaultStaff ? [defaultStaff] : (state.myName ? [state.myName] : [])),
       content: ev ? (ev.memo || (type !== "request" ? (ev.customer || "") : "")) : "",
       customer: ev ? (ev.customer || "") : "",
@@ -816,6 +819,10 @@
       var date3Input = el("input", { type: "date", style: inputStyle(), value: draft.desiredDate3 });
       date3Input.addEventListener("input", function () { draft.desiredDate3 = date3Input.value; });
       form.appendChild(formField("第3希望日(任意)", date3Input));
+
+      var date4Input = el("input", { type: "date", style: inputStyle(), value: draft.desiredDate4 });
+      date4Input.addEventListener("input", function () { draft.desiredDate4 = date4Input.value; });
+      form.appendChild(formField("第4希望日(任意)", date4Input));
     } else {
       var dateInput = el("input", { type: "date", style: inputStyle(), value: draft.date });
       dateInput.addEventListener("input", function () { draft.date = dateInput.value; });
@@ -981,6 +988,7 @@
       endDate: type === "request" ? null : endDate,
       desiredDate2: type === "request" ? (draft.desiredDate2 || null) : null,
       desiredDate3: type === "request" ? (draft.desiredDate3 || null) : null,
+      desiredDate4: type === "request" ? (draft.desiredDate4 || null) : null,
       staff: type === "request" ? [] : draft.staff.slice(),
       title: content.slice(0, 40),
       memo: content,
